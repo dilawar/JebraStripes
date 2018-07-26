@@ -271,7 +271,7 @@ def main():
         flagToStop_ = 1
 
     print( '[INFO] Density %.2f per mm' % density_ )
-    print( '[INFO] Flags %.2f per mm' % flagToStop_ )
+    print( '[INFO] Flags %s' % flagToStop_ )
     t_ = time.time( ) 
     init_pins( )
     init_arrays()
