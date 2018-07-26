@@ -1,3 +1,4 @@
-pillow
 scipy
 numpy
+screeninfo
+opencv-python

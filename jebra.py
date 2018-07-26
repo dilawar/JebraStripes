@@ -6,6 +6,9 @@ NOTE: The raw image which we operate on is 4x time larger in width to make sure
 we get right number of pixel to offset. The figure which is displayed is
 downsampled 4x. Otherwise the picture flow will not be smooth.
 
+[WARN] This is customized for 5" LCD display. The values you see on the development
+machine might vary if screen resolution is not 800x480. You have been warned!
+
 """
 from __future__ import division, print_function
     
@@ -23,21 +26,53 @@ import time
 import random
 import scipy.misc
 import datetime
+import screeninfo
+import cv2
+from PIL import Image, ImageTk
+
 try:
     import Tkinter as tk
 except ImportError as e:
     import tkinter as tk
 
-from PIL import Image, ImageTk
-import RPi.GPIO as GPIO
-input_pin_ = 21
+
+onPi_   = True
+use_tk_ = False
+
+# opencv window
+window_ = 'FISH'
+screen = screeninfo.get_monitors()[-1]
+cv2.namedWindow( window_, cv2.WINDOW_AUTOSIZE )
+cv2.namedWindow( window_, cv2.WND_PROP_FULLSCREEN)
+cv2.moveWindow( window_, screen.x - 1, screen.y - 1)
+cv2.setWindowProperty(window_, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 
-def init_pins():
-    global input_pin_
-    GPIO.setmode( GPIO.BCM )
-    GPIO.setup(input_pin_, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+try:
+    import RPi.GPIO as GPIO
+except Exception as e:
+    print( '[WARN] Not running on rPI' )
+    onPi_ = False
 
+input_pin_   = 21
+step_        = 0
+status_      = 'RUNNING'
+w_, h_, ws_  = 800, 480, 1
+img_         = None
+tkImage_     = None
+speed_       = 10               # mm in seconds
+slitWidth_   = 5                # in mm.
+t_           = time.time()
+startStop_   = None             # start stop button
+imgOnCanvas_ = None
+T_           = 30    # in ms
+nrows_       = 10
+density_     = ((w_**2 + h_**2)**0.5)/5/25.4   # per mm
+
+if use_tk_:
+    root_        = tk.Tk()
+    label_       = None
+    canvas_      = tk.Canvas( root_, width=w_, height=h_ )
 
 datadir_ = os.path.join( os.getenv( 'HOME' ), 'Desktop', 'Experiments' )
 if not os.path.isdir( datadir_ ):
@@ -48,30 +83,13 @@ datafile_ = os.path.join( datadir_, stamp )
 with open( datafile_, 'w' ) as f:
     f.write( 'timestamp running \n')
 
-step_        = 0
-status_      = 'RUNNING'
-w_, h_, ws_  = 800, 480, 1
-img_         = None
-tkImage_     = None
-speed_       = 10               # mm in seconds
-slitWidth_   = 5                # in mm.
-t_           = time.time()
-root_        = tk.Tk()
-root_.attributes( '-zoomed', True )
-label_       = None
-canvas_      = tk.Canvas( root_, width=w_, height=h_ )
-startStop_   = None             # start stop button
-imgOnCanvas_ = None
-T_           = 30    # in ms
-nrows_       = 10
-density_     = ((w_**2 + h_**2)**0.5)/5/25.4   # per mm
-
-print( '[INFO] Density %.2f per mm' % density_ )
-print( '[WARN] This is customized for 5" LCD display. The values you'
-       ' see on the development machine might vary if screen resolution '
-       ' is not 800x480. '
-       ' You have been warned!' )
-
+def init_pins():
+    global input_pin_
+    global onPi_ 
+    if not onPi_:
+        return
+    GPIO.setmode( GPIO.BCM )
+    GPIO.setup(input_pin_, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def toggle_fullscreen(event=None):
     global root_
@@ -95,10 +113,11 @@ def mm2px( mm ):
 def px2mm( px ):
     return px / density_
 
-def append_data_line( filename ):
+def append_data_line( ):
+    global datafile_
     stamp = datetime.datetime.now().isoformat()
-    line = '%s %g\n' % (stamp, status_ )
-    with open( filename, 'a' ) as f:
+    line = '%s %s\n' % (stamp, status_ )
+    with open( datafile_, 'a' ) as f:
         f.write( line )
 
 def init_arrays():
@@ -111,7 +130,9 @@ def init_arrays():
     stride = ws_ * mm2px( slitWidth_ )
     for i in range( 0, w_ * ws_, 2*stride ):
         img_[:,i:i+stride] = 255
-    tkImage_ = im2tkimg(img_ )
+
+    if use_tk_:
+        tkImage_ = im2tkimg(img_ )
 
 def generate_stripes( offset ):
     global speed_, slitWidth_ 
@@ -120,10 +141,14 @@ def generate_stripes( offset ):
     if status_ == 'STOPPED':
         return 
     offset = int( offset )
-    #img_ = np.roll( img_, (0,offset), axis=1)
+    assert img_ is not None
     img_ = np.roll( img_, offset, axis=1)
-    tkImage_ = im2tkimg( img_ )
-    canvas_.itemconfig( imgOnCanvas_, image = tkImage_ )
+    if use_tk_:
+        tkImage_ = im2tkimg( img_ )
+        canvas_.itemconfig( imgOnCanvas_, image = tkImage_ )
+    else:
+        cv2.imshow( window_, img_ )
+        cv2.waitKey( 1 )
 
 def intOffset( v ):
     px = int(v)
@@ -138,6 +163,8 @@ def update_frame( ):
     global t_, label_, root_
     global canvas_, imgOnCanvas_
     global step_, status_
+
+    append_data_line()
     step_ += 1
     dt = time.time() - t_
     t_ = time.time()
@@ -146,12 +173,17 @@ def update_frame( ):
     if step_ % 25 == 0:
         print( 'OFFSET %d, dt=%.2f ms speed=%.2f mm/s' % ( offset, dt*1000, s ) )
     generate_stripes( intOffset(offset) )
-    s = GPIO.input( input_pin_ )
-    if s == 1:
-        status_ = 'STOPPED'
-    else:
-        status_ = 'RUNNING'
-    root_.after( T_, update_frame )
+
+    if onPi_:
+        s = GPIO.input( input_pin_ )
+        if s == 1:
+            status_ = 'STOPPED'
+        else:
+            status_ = 'RUNNING'
+
+    if use_tk_:
+        root_.after( T_, update_frame )
+
 
 def speed_changed( newspeed ):
     global speed_ 
@@ -187,14 +219,11 @@ def init_tk( show_control ):
 
     canvas_.grid(row=0, column=0, columnspan=3, rowspan = nrows_)
     init_arrays()
+    assert tkImage_
     imgOnCanvas_ = canvas_.create_image( 0, 0
             , anchor = "nw"
             , image=tkImage_, state = tk.DISABLED
             )
-
-
-    if not show_control:
-        return 
 
     # add speed scale.
     speed = tk.Scale(root_, from_ = 5, to_ = 20
@@ -221,11 +250,18 @@ def init_tk( show_control ):
 
 def main():
     global root_, t_
-    t_ = time.time() 
-    init_pins()
-    init_tk( show_control = False )
-    root_.after( T_, update_frame )
-    root_.mainloop()
+    print( '[INFO] Density %.2f per mm' % density_ )
+    t_ = time.time( ) 
+    init_pins( )
+    init_arrays()
+
+    if use_tk_:
+        init_tk( )
+        root_.after( T_, update_frame )
+        root_.mainloop( )
+    else:
+        while True:
+            update_frame( )
 
 if __name__ == '__main__':
     main()

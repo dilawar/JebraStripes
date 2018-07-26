@@ -1,0 +1,2 @@
+all : ./jebra.py
+	python $<
