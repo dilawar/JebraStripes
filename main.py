@@ -28,6 +28,7 @@ import scipy.misc
 import datetime
 import screeninfo
 import cv2
+import math
 from PIL import Image, ImageTk
 
 try:
@@ -116,7 +117,8 @@ def im2tkimg( img ):
     return ImageTk.PhotoImage(Image.fromarray(img))
 
 def mm2px( mm ):
-    return int(mm * density_)
+    # scaling factor of 1.99 is by trial and error.
+    return int(mm * density_/1.198)
 
 def px2mm( px ):
     return px / density_
