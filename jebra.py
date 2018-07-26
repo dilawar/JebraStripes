@@ -22,24 +22,29 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GdkPixbuf, GLib, GObject
 from datetime import datetime
 
-w_, h_ = 0, 0
-img_ = None
-speed_ = 1000            # pixel in seconds
+w_, h_     = 0, 0
+img_       = None
+speed_     = 100            # pixel in seconds
 slitWidth_ = 100        # in pixels.
-t_    = time.time()
+t_         = time.time()
 
 def set_resolution():
     global w_, h_
     global img_
     monitor = screeninfo.get_monitors()[-1]
-    w_ = monitor.width 
-    h_ = monitor.height
+    w_ = monitor.width  // 2
+
+    # make sure that width is divisible by slitWidth_ and must be even.
+    nSlits = w_ // slitWidth_ 
+    nSlits = nSlits - (nSlits % 2 )
+    w_ = nSlits * slitWidth_
+    h_ = monitor.height // 2
 
 def init_arrays():
     global img_
     # numpy and opencv has incompatible coordinate system. So silly.
     img_ = np.zeros( (3, h_, w_), dtype = np.uint8 )
-    for i in range( 0, h_, 2*slitWidth_ ):
+    for i in range( 0, w_, 2*slitWidth_ ):
         img_[:,:,i:i+slitWidth_] = 255
 
 def show_frame(  waitFor = 1 ):
@@ -54,18 +59,10 @@ def generate_stripes( offset = 0 ):
     offset = int( offset )
     img_ = np.roll( img_, (0,0,offset), axis=2)
 
-def run( ):
-    global img_
-    global speed_, slitWidth_
-    global t_
-    offset = int( speed_ * (time.time() - t_))
-    t_ = time.time()
-    generate_stripes( offset )
-
 def np2pixbuf( im ):
     """Convert Pillow image to GdkPixbuf"""
     data = im.tobytes()
-    w, h, d = im.shape
+    d, h, w = im.shape
     data = GLib.Bytes.new(data)
     pix = GdkPixbuf.Pixbuf.new_from_bytes(data, GdkPixbuf.Colorspace.RGB,
             False, 8, w, h, w * 3)
@@ -73,7 +70,7 @@ def np2pixbuf( im ):
 
 class JebraWindow( Gtk.ApplicationWindow ):
 
-  def __init__(self, app):
+    def __init__(self, app):
         Gtk.Window.__init__(self, title="Jebra", application=app)
         self.set_default_size(300, 300)
 
@@ -84,8 +81,20 @@ class JebraWindow( Gtk.ApplicationWindow ):
         # add the image to the window
         self.add(image)
 
-        # Add timer
-        GObject.timeout_add( 10, run )
+        # Add timer. Call as fast as you can otherwise it would be visible to
+        # fish.
+        GObject.timeout_add( 10, self.update_frame, image )
+
+    def update_frame( self, image ):
+        global img_
+        global speed_, slitWidth_
+        global t_
+        offset = int( speed_ * (time.time() - t_))
+        t_ = time.time()
+        generate_stripes( offset )
+        image.set_from_pixbuf( np2pixbuf(img_) )
+        return True
+
 
 class JebraApp( Gtk.Application ):
 
@@ -105,7 +114,10 @@ def main():
     init_arrays()
     t0 = time.time() 
     app = JebraApp()
-    e = app.run( )
+    try:
+        e = app.run( )
+    except KeyboardInterrupt as e:
+        quit(1)
     sys.exit( e )
 
 if __name__ == '__main__':
