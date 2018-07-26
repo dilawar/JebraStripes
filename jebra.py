@@ -141,6 +141,10 @@ def init_arrays():
     if use_tk_:
         tkImage_ = im2tkimg(img_ )
 
+def quitAll( ):
+    cv2.destroyAllWindows()
+    quit(1)
+
 def generate_stripes( offset ):
     global speed_, slitWidth_ 
     global tkImage_, canvas_
@@ -155,7 +159,9 @@ def generate_stripes( offset ):
         canvas_.itemconfig( imgOnCanvas_, image = tkImage_ )
     else:
         cv2.imshow( window_, img_ )
-        cv2.waitKey( 1 )
+        c = cv2.waitKey( 1 )
+        if 'q' == chr(c & 255):
+            quitAll()
 
 def intOffset( v ):
     px = int(v)
