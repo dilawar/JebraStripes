@@ -72,6 +72,17 @@ print( '[WARN] This is customized for 5" LCD display. The values you'
        ' is not 800x480. '
        ' You have been warned!' )
 
+
+def toggle_fullscreen(event=None):
+    global root_
+    root_.attributes("-fullscreen", True )
+    return "break"
+
+def end_fullscreen( event=None):
+    global root_
+    root_.attributes("-fullscreen", False)
+    return "break"
+
 def im2tkimg( img ):
     global realW_
     h, w  = img.shape 
@@ -101,7 +112,6 @@ def init_arrays():
     for i in range( 0, w_ * ws_, 2*stride ):
         img_[:,i:i+stride] = 255
     tkImage_ = im2tkimg(img_ )
-
 
 def generate_stripes( offset ):
     global speed_, slitWidth_ 
@@ -167,10 +177,13 @@ def toggle_start_stop( ):
 
     startStop_.config( text = status_ )
 
-def init_tk():
+def init_tk( show_control ):
     global tkImage_, root_
     global canvas_, imgOnCanvas_
     global startStop_
+
+    root_.bind("<F11>", toggle_fullscreen)
+    root_.bind("<Escape>", end_fullscreen)
 
     canvas_.grid(row=0, column=0, columnspan=3, rowspan = nrows_)
     init_arrays()
@@ -179,6 +192,10 @@ def init_tk():
             , anchor = "nw"
             , image=tkImage_, state = tk.DISABLED
             )
+
+
+    if not show_control:
+        return 
 
     # add speed scale.
     speed = tk.Scale(root_, from_ = 5, to_ = 20
