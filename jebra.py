@@ -47,6 +47,7 @@ speed_       = 10               # mm in seconds
 slitWidth_   = 5                # in mm.
 t_           = time.time()
 root_        = tk.Tk()
+root_.attributes( '-fullscreen', True )
 label_       = None
 canvas_      = tk.Canvas( root_, width=w_, height=h_ )
 startStop_   = None             # start stop button
@@ -98,7 +99,8 @@ def generate_stripes( offset ):
     if status_ == 'STOPPED':
         return 
     offset = int( offset )
-    img_ = np.roll( img_, (0,offset,0), axis=1)
+    #img_ = np.roll( img_, (0,offset), axis=1)
+    img_ = np.roll( img_, offset, axis=1)
     tkImage_ = im2tkimg( img_ )
     canvas_.itemconfig( imgOnCanvas_, image = tkImage_ )
 
