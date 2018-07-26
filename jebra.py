@@ -42,10 +42,17 @@ use_tk_ = False
 # opencv window
 window_ = 'FISH'
 screen = screeninfo.get_monitors()[-1]
-cv2.namedWindow( window_, cv2.WINDOW_AUTOSIZE )
-cv2.namedWindow( window_, cv2.WND_PROP_FULLSCREEN)
-cv2.moveWindow( window_, screen.x - 1, screen.y - 1)
-cv2.setWindowProperty(window_, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+try:
+    # opencv >= 3
+    cv2.namedWindow( window_, cv2.WINDOW_AUTOSIZE )
+    cv2.moveWindow( window_, screen.x - 1, screen.y - 1)
+    cv2.setWindowProperty(window_, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+except Exception as e:
+    # opencv-2.4
+    cv2.namedWindow( window_, cv2.cv.CV_WINDOW_AUTOSIZE )
+    cv2.moveWindow( window_, screen.x - 1, screen.y - 1)
+    cv2.setWindowProperty(window_, cv2.cv.CV_WINDOW_FULLSCREEN, 1)
+
 
 
 try:
