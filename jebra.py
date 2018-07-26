@@ -108,10 +108,11 @@ def mm2px( mm ):
 def px2mm( px ):
     return px / density_
 
-def append_data_line( filename ):
+def append_data_line( ):
+    global datafile_
     stamp = datetime.datetime.now().isoformat()
-    line = '%s %g\n' % (stamp, status_ )
-    with open( filename, 'a' ) as f:
+    line = '%s %s\n' % (stamp, status_ )
+    with open( datafile_, 'a' ) as f:
         f.write( line )
 
 def init_arrays():
@@ -157,6 +158,8 @@ def update_frame( ):
     global t_, label_, root_
     global canvas_, imgOnCanvas_
     global step_, status_
+
+    append_data_line()
     step_ += 1
     dt = time.time() - t_
     t_ = time.time()
@@ -175,6 +178,7 @@ def update_frame( ):
 
     if use_tk_:
         root_.after( T_, update_frame )
+
 
 def speed_changed( newspeed ):
     global speed_ 
