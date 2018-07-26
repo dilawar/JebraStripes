@@ -38,6 +38,7 @@ except ImportError as e:
 
 onPi_   = True
 use_tk_ = False
+flagToStop_ = 0
 
 # opencv window
 window_ = 'FISH'
@@ -150,7 +151,8 @@ def generate_stripes( offset ):
     global tkImage_, canvas_
     global img_
     if status_ == 'STOPPED':
-        return 
+        offset = 0 
+
     offset = int( offset )
     assert img_ is not None
     img_ = np.roll( img_, offset, axis=1)
@@ -189,7 +191,7 @@ def update_frame( ):
 
     if onPi_:
         s = GPIO.input( input_pin_ )
-        if s == 1:
+        if s == flagToStop_:
             status_ = 'STOPPED'
         else:
             status_ = 'RUNNING'
@@ -263,6 +265,11 @@ def init_tk( show_control ):
 
 def main():
     global root_, t_
+    global flagToStop_ 
+
+    if len(sys.argv) > 1:
+        flagToStop_ = 1
+
     print( '[INFO] Density %.2f per mm' % density_ )
     t_ = time.time( ) 
     init_pins( )
