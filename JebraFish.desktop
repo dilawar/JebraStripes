@@ -1,0 +1,7 @@
+
+[Desktop Entry]
+Name=JebraFish
+Comment=Lancher 
+Exec=$HOME/JebraStripes/jebra.py
+Terminal=true
+Type=Application
