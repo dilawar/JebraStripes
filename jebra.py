@@ -18,9 +18,9 @@ import numpy as np
 import screeninfo
 import time
 import gi
+import signal
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GdkPixbuf, GLib, GObject
-from datetime import datetime
 
 w_, h_     = 0, 0
 img_       = None
@@ -74,12 +74,25 @@ class JebraWindow( Gtk.ApplicationWindow ):
         Gtk.Window.__init__(self, title="Jebra", application=app)
         self.set_default_size(300, 300)
 
+        vbox = Gtk.VBox()
+        self.add( vbox )
+
         # create an image
         image = Gtk.Image()
         # set the content of the image as the file filename.png
         image.set_from_pixbuf( np2pixbuf(img_) )
         # add the image to the window
-        self.add(image)
+        vbox.pack_start(image, True, True, 0)
+
+        ## Add scale.
+        self.speed = Gtk.Scale( )
+        self.speed.set_range(100, 1000)
+        vbox.pack_start( self.speed, True, True, 0 )
+        self.speed.connect( "value-changed", self.speed_changed )
+        self.speed.show()
+
+        image.show()
+        self.show_all()
 
         # Add timer. Call as fast as you can otherwise it would be visible to
         # fish.
@@ -91,8 +104,15 @@ class JebraWindow( Gtk.ApplicationWindow ):
         global t_
         offset = int( speed_ * (time.time() - t_))
         t_ = time.time()
+        print( 'Offset is %d' % offset )
         generate_stripes( offset )
         image.set_from_pixbuf( np2pixbuf(img_) )
+        return True
+
+    def speed_changed( self, event ):
+        global speed_ 
+        speed_ = int(self.speed.get_value())
+        print( 'New speed %d' % speed_ )
         return True
 
 
@@ -114,10 +134,8 @@ def main():
     init_arrays()
     t0 = time.time() 
     app = JebraApp()
-    try:
-        e = app.run( )
-    except KeyboardInterrupt as e:
-        quit(1)
+    GLib.unix_signal_add( GLib.PRIORITY_DEFAULT, signal.SIGINT, app.quit )
+    e = app.run( )
     sys.exit( e )
 
 if __name__ == '__main__':
