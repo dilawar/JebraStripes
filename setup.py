@@ -22,7 +22,7 @@ setup(
     long_description = readme,
     packages = [ "ZebraStripes" ],
     package_dir = { 'ZebraStripes' : '.' },
-    install_requires = [ 'opencv-python', 'pillow' ],
+    # install_requires = [ 'opencv-python', 'pillow' ],
     author = "Dilawar Singh",
     author_email = "dilawars@ncbs.res.in",
     url = "http://github.com/dilawar/ZebraStripes",
