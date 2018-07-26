@@ -1,7 +1,7 @@
 
 [Desktop Entry]
-Name=JebraFish
+Name=ZebraStripes
 Comment=Lancher 
-Exec=$HOME/JebraStripes/jebra.py
+Exec=zerbra-stripes
 Terminal=true
 Type=Application
