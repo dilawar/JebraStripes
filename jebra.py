@@ -187,7 +187,6 @@ def init_tk( show_control ):
 
     canvas_.grid(row=0, column=0, columnspan=3, rowspan = nrows_)
     init_arrays()
-    assert tkImage_
     imgOnCanvas_ = canvas_.create_image( 0, 0
             , anchor = "nw"
             , image=tkImage_, state = tk.DISABLED
@@ -224,7 +223,7 @@ def main():
     global root_, t_
     t_ = time.time() 
     init_pins()
-    init_tk()
+    init_tk( show_control = False )
     root_.after( T_, update_frame )
     root_.mainloop()
 
