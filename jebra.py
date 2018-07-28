@@ -33,16 +33,17 @@ def set_resolution():
     global img_
     monitor = screeninfo.get_monitors()[-1]
     w_ = monitor.width  // 2
-
-    # make sure that width is divisible by slitWidth_ and must be even.
-    nSlits = w_ // slitWidth_ 
-    nSlits = nSlits - (nSlits % 2 )
-    w_ = nSlits * slitWidth_
     h_ = monitor.height // 2
+    # make sure that width is divisible by slitWidth_ and must be even.
+    #  nSlits = w_ // slitWidth_
+    #  nSlits = nSlits - (nSlits % 2 ) + 1
+    #  w_ = nSlits * slitWidth_
 
 def init_arrays():
     global img_
     # numpy and opencv has incompatible coordinate system. So silly.
+    print( 'I', end = '' )
+    sys.stdout.flush()
     img_ = np.zeros( (3, h_, w_), dtype = np.uint8 )
     for i in range( 0, w_, 2*slitWidth_ ):
         img_[:,:,i:i+slitWidth_] = 255
@@ -74,22 +75,30 @@ class JebraWindow( Gtk.ApplicationWindow ):
         Gtk.Window.__init__(self, title="Jebra", application=app)
         self.set_default_size(300, 300)
 
-        vbox = Gtk.VBox()
-        self.add( vbox )
+        grid = Gtk.Grid()
+        self.add( grid )
 
         # create an image
         image = Gtk.Image()
         # set the content of the image as the file filename.png
         image.set_from_pixbuf( np2pixbuf(img_) )
         # add the image to the window
-        vbox.pack_start(image, True, True, 0)
+        grid.attach(image, 0, 0, 2, 2)
 
-        ## Add scale.
+        ## Add scales: One for speed and other for width.
         self.speed = Gtk.Scale( )
+        self.width = Gtk.Scale( )
         self.speed.set_range(100, 1000)
-        vbox.pack_start( self.speed, True, True, 0 )
+        self.width.set_range(20, 200)
+        self.width.set_value( slitWidth_ )
+
         self.speed.connect( "value-changed", self.speed_changed )
+        self.width.connect( "value-changed", self.width_changed )
+        grid.attach( self.speed, 0, 2, 1, 1)
+        grid.attach( self.width, 1, 2, 1, 1)
+
         self.speed.show()
+        self.width.show()
 
         image.show()
         self.show_all()
@@ -104,7 +113,6 @@ class JebraWindow( Gtk.ApplicationWindow ):
         global t_
         offset = int( speed_ * (time.time() - t_))
         t_ = time.time()
-        print( 'Offset is %d' % offset )
         generate_stripes( offset )
         image.set_from_pixbuf( np2pixbuf(img_) )
         return True
@@ -113,6 +121,13 @@ class JebraWindow( Gtk.ApplicationWindow ):
         global speed_ 
         speed_ = int(self.speed.get_value())
         print( 'New speed %d' % speed_ )
+        return True
+
+    def width_changed( self, event ):
+        global slitWidth_ 
+        slitWidth_ = int(self.width.get_value())
+        print( '[INFO] Width changed to %d' % slitWidth_ )
+        init_arrays()
         return True
 
 
