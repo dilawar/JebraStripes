@@ -60,15 +60,6 @@ def generate_stripes( offset = 0 ):
     offset = int( offset )
     img_ = np.roll( img_, (0,0,offset), axis=2)
 
-def np2pixbuf( im ):
-    """Convert Pillow image to GdkPixbuf"""
-    data = im.tobytes()
-    d, h, w = im.shape
-    data = GLib.Bytes.new(data)
-    pix = GdkPixbuf.Pixbuf.new_from_bytes(data, GdkPixbuf.Colorspace.RGB,
-            False, 8, w, h, w * 3)
-    return pix
-
 class JebraWindow( Gtk.ApplicationWindow ):
 
     def __init__(self, app):
@@ -81,7 +72,9 @@ class JebraWindow( Gtk.ApplicationWindow ):
         # create an image
         image = Gtk.Image()
         # set the content of the image as the file filename.png
-        image.set_from_pixbuf( np2pixbuf(img_) )
+        self.pix = None
+        self.np2pixbuf( )
+        image.set_from_pixbuf( self.pix )
         # add the image to the window
         grid.attach(image, 0, 0, 2, 2)
 
@@ -107,6 +100,15 @@ class JebraWindow( Gtk.ApplicationWindow ):
         # fish.
         GObject.timeout_add( 10, self.update_frame, image )
 
+    def np2pixbuf( self ):
+        global img_
+        """Convert Pillow image to GdkPixbuf"""
+        d, h, w = img_.shape
+        self.data = GLib.Bytes.new( img_.tobytes() )
+        self.pix = GdkPixbuf.Pixbuf.new_from_bytes(self.data, GdkPixbuf.Colorspace.RGB,
+                False, 8, w, h, w * 3)
+
+
     def update_frame( self, image ):
         global img_
         global speed_, slitWidth_
@@ -114,7 +116,8 @@ class JebraWindow( Gtk.ApplicationWindow ):
         offset = int( speed_ * (time.time() - t_))
         t_ = time.time()
         generate_stripes( offset )
-        image.set_from_pixbuf( np2pixbuf(img_) )
+        self.np2pixbuf()
+        image.set_from_pixbuf( self.pix )
         return True
 
     def speed_changed( self, event ):
