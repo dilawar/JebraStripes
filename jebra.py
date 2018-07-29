@@ -15,9 +15,7 @@ __status__           = "Development"
 import sys
 import os
 import numpy as np
-import screeninfo
 import time
-import cv2
 
 try:
     import Tkinter as tk
@@ -26,40 +24,22 @@ except ImportError as e:
 
 from PIL import Image, ImageTk
 
-realW_, w_, h_ = 0, 0, 0
+realW_, w_, h_ = 800, 800, 480
 img_           = None
 tkImage_       = None
-speed_         = 100            # pixel in seconds
-slitWidth_     = 20             # in pixels.
+speed_         = 2**4            # pixel in seconds
+slitWidth_     = 2**3             # in pixels.
 t_             = time.time()
 root_          = tk.Tk()
 label_         = None
-canvas_        = tk.Canvas( root_ )
+canvas_        = tk.Canvas( root_, width=w_, height=h_ )
 imgOnCanvas_   = None
-T_             = 20    # in ms
-
-def set_resolution():
-    global w_, h_
-    global img_
-    global canvas_, root_
-    monitor = screeninfo.get_monitors()[-1]
-    w_ = monitor.width // 2
-    realW_ = w_
-    h_ = monitor.height  // 2
-    # make sure that width is divisible by slitWidth_ and must be even and
-    # slightly larger than the screen width so we don't see uneven gaps.
-    nSlits = w_ // slitWidth_
-    nSlits = nSlits - (nSlits % 2 ) + 1
-    w_ = nSlits * slitWidth_
-    root_.geometry( '{}x{}'.format( realW_, h_) )
-    canvas_.width = realW_
-    canvas_.height = h_
-    canvas_.grid( row = 0, column = 0, columnspan = 2 )
-    print( 'New dim for image %d, monitory width %d' % (w_, realW_))
+T_             = 10    # in ms
+nrows_         = 10
 
 def im2tkimg( img ):
     global realW_
-    return ImageTk.PhotoImage(Image.fromarray( img[:,0:realW_-1,:]))
+    return ImageTk.PhotoImage(Image.fromarray(img))
 
 def init_arrays():
     global img_
@@ -67,8 +47,8 @@ def init_arrays():
     # numpy and opencv has incompatible coordinate system. So silly.
     print( 'I', end = '' )
     sys.stdout.flush()
-    img_ = np.dstack([np.zeros( (h_, w_), dtype = np.uint8) for i in range(3)])
-    #  print( img_.shape )
+    img_ = np.dstack([np.zeros((h_, w_), dtype = np.uint8) 
+        for i in range(3)])
     for i in range( 0, w_, 2*slitWidth_ ):
         img_[:,i:i+slitWidth_,:] = 255
     tkImage_ = im2tkimg(img_)
@@ -87,7 +67,7 @@ def update_frame( ):
     global speed_, slitWidth_
     global t_, label_, root_
     global canvas_, imgOnCanvas_
-    print( 'Time = %.3f ' % t_ )
+    #  print( 'Time = %.3f ' % t_ )
     offset = int( speed_ * (time.time() - t_))
     t_ = time.time()
     generate_stripes( offset )
@@ -95,7 +75,8 @@ def update_frame( ):
 
 def speed_changed( newspeed ):
     global speed_ 
-    speed_ = int(newspeed)
+    newspeed = int(newspeed)
+    speed_ = newspeed
     print( 'New speed %d' % newspeed )
     return True
 
@@ -110,26 +91,28 @@ def init_tk():
     global tkImage_, root_
     global canvas_, imgOnCanvas_
     global label_
-    set_resolution()
+    canvas_.grid(row=0, column=0, columnspan=2, rowspan = nrows_)
     init_arrays()
     assert tkImage_
-    imgOnCanvas_ = canvas_.create_image(h_//2, realW_//2, image=tkImage_
-            , state = tk.DISABLED
+    imgOnCanvas_ = canvas_.create_image( 0, 0
+            , anchor = "nw"
+            , image=tkImage_, state = tk.DISABLED
             )
 
     # add speed scale.
-    speed = tk.Scale(root_, from_ = 50, to_ = 500
+    speed = tk.Scale(root_, from_ = 10, to_ = 100
                 , command= lambda v: speed_changed(v)
             )
     speed.config(orient = tk.HORIZONTAL)
-    speed.grid(row = 1, column = 0)
+    speed.grid(row=nrows_, column=0 )
 
-    width = tk.Scale(root_, from_ = 50, to_ = 500
+    width = tk.Scale(root_, from_ = 5, to_ = 20
                 , command= lambda v: width_changed(v)
             ) 
+    width.set( slitWidth_ )
     width.config(orient = tk.HORIZONTAL)
-    width.grid(row = 1, column = 1)
-    
+    width.grid(row=nrows_, column = 1 )
+
 
 def main():
     global root_, t_
