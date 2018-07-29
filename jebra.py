@@ -19,14 +19,22 @@ import screeninfo
 import time
 import gi
 import signal
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GdkPixbuf, GLib, GObject
+
+try:
+    import Tkinter as tk
+except ImportError as e:
+    import tkinter as tk
+
+from PIL import Image, ImageTk
 
 w_, h_     = 0, 0
 img_       = None
+tkImage_   = None
 speed_     = 100            # pixel in seconds
 slitWidth_ = 100        # in pixels.
 t_         = time.time()
+root_      = tk.Tk()
+label_     = None
 
 def set_resolution():
     global w_, h_
@@ -41,12 +49,18 @@ def set_resolution():
 
 def init_arrays():
     global img_
+    global im_, tkImage_
     # numpy and opencv has incompatible coordinate system. So silly.
     print( 'I', end = '' )
     sys.stdout.flush()
-    img_ = np.zeros( (3, h_, w_), dtype = np.uint8 )
+    img_ = np.dstack([np.zeros( (h_, w_), dtype = np.uint8) for i in range(3)])
+    print( img_.shape )
     for i in range( 0, w_, 2*slitWidth_ ):
-        img_[:,:,i:i+slitWidth_] = 255
+        img_[:,i:i+slitWidth_,:] = 255
+
+    im = Image.fromarray( img_ )
+    im.save( "__background.png" )
+    tkImage_   = ImageTk.PhotoImage( im )
 
 def show_frame(  waitFor = 1 ):
     global img_
@@ -56,105 +70,55 @@ def show_frame(  waitFor = 1 ):
 
 def generate_stripes( offset = 0 ):
     global speed_, slitWidth_ 
+    global tkImage_, label_
     global img_
+
     offset = int( offset )
-    img_ = np.roll( img_, (0,0,offset), axis=2)
+    img_ = np.roll( img_, (0,offset,0), axis=2)
+    tkImage_ = ImageTk.PhotoImage( Image.fromarray(img_) )
+    label_.config( image = tkImage_ )
 
-class JebraWindow( Gtk.ApplicationWindow ):
+def __init__(self):
+    pass
 
-    def __init__(self, app):
-        Gtk.Window.__init__(self, title="Jebra", application=app)
-        self.set_default_size(300, 300)
+def update_frame( ):
+    global img_
+    global speed_, slitWidth_
+    global t_, label_, root_
+    offset = int( speed_ * (time.time() - t_))
+    t_ = time.time()
+    generate_stripes( offset )
+    print( 'updating frame' )
+    root_.after( 100, update_frame )
 
-        grid = Gtk.Grid()
-        self.add( grid )
+def speed_changed( self, event ):
+    global speed_ 
+    speed_ = int(self.speed.get_value())
+    print( 'New speed %d' % speed_ )
+    return True
 
-        # create an image
-        image = Gtk.Image()
-        # set the content of the image as the file filename.png
-        self.pix = None
-        self.np2pixbuf( )
-        image.set_from_pixbuf( self.pix )
-        # add the image to the window
-        grid.attach(image, 0, 0, 2, 2)
+def width_changed( self, event ):
+    global slitWidth_ 
+    slitWidth_ = int(self.width.get_value())
+    print( '[INFO] Width changed to %d' % slitWidth_ )
+    init_arrays()
+    return True
 
-        ## Add scales: One for speed and other for width.
-        self.speed = Gtk.Scale( )
-        self.width = Gtk.Scale( )
-        self.speed.set_range(100, 1000)
-        self.width.set_range(20, 200)
-        self.width.set_value( slitWidth_ )
-
-        self.speed.connect( "value-changed", self.speed_changed )
-        self.width.connect( "value-changed", self.width_changed )
-        grid.attach( self.speed, 0, 2, 1, 1)
-        grid.attach( self.width, 1, 2, 1, 1)
-
-        self.speed.show()
-        self.width.show()
-
-        image.show()
-        self.show_all()
-
-        # Add timer. Call as fast as you can otherwise it would be visible to
-        # fish.
-        GObject.timeout_add( 10, self.update_frame, image )
-
-    def np2pixbuf( self ):
-        global img_
-        """Convert Pillow image to GdkPixbuf"""
-        d, h, w = img_.shape
-        self.data = GLib.Bytes.new( img_.tobytes() )
-        self.pix = GdkPixbuf.Pixbuf.new_from_bytes(self.data, GdkPixbuf.Colorspace.RGB,
-                False, 8, w, h, w * 3)
-
-
-    def update_frame( self, image ):
-        global img_
-        global speed_, slitWidth_
-        global t_
-        offset = int( speed_ * (time.time() - t_))
-        t_ = time.time()
-        generate_stripes( offset )
-        self.np2pixbuf()
-        image.set_from_pixbuf( self.pix )
-        return True
-
-    def speed_changed( self, event ):
-        global speed_ 
-        speed_ = int(self.speed.get_value())
-        print( 'New speed %d' % speed_ )
-        return True
-
-    def width_changed( self, event ):
-        global slitWidth_ 
-        slitWidth_ = int(self.width.get_value())
-        print( '[INFO] Width changed to %d' % slitWidth_ )
-        init_arrays()
-        return True
-
-
-class JebraApp( Gtk.Application ):
-
-    def __init__(self):
-        Gtk.Application.__init__(self)
-
-    def do_activate(self):
-        win = JebraWindow(self)
-        win.connect( "destroy", Gtk.main_quit )
-        win.show_all()
-
-    def do_startup(self):
-        Gtk.Application.do_startup(self)
-
-def main():
+def init_tk():
+    global tkImage_, root_
+    global label_
     set_resolution()
     init_arrays()
-    t0 = time.time() 
-    app = JebraApp()
-    GLib.unix_signal_add( GLib.PRIORITY_DEFAULT, signal.SIGINT, app.quit )
-    e = app.run( )
-    sys.exit( e )
+    assert tkImage_
+    label_ = tk.Label( root_, image = tkImage_ )
+    label_.pack()
+
+def main():
+    global root_, t_
+    t_ = time.time() 
+    init_tk()
+    root_.after( 100, update_frame )
+    root_.mainloop()
 
 if __name__ == '__main__':
     main()
