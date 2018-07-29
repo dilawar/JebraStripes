@@ -22,29 +22,38 @@ import numpy as np
 import time
 import random
 import scipy.misc
-
+import datetime
 try:
     import Tkinter as tk
 except ImportError as e:
     import tkinter as tk
-
 from PIL import Image, ImageTk
 
-step_ = 0
-start_      = True
-w_, h_, ws_ = 800, 480, 1
-img_           = None
-tkImage_       = None
-speed_         = 10               # mm in seconds
-slitWidth_     = 5                # in mm.
-t_             = time.time()
-root_          = tk.Tk()
-label_         = None
-canvas_        = tk.Canvas( root_, width=w_, height=h_ )
-imgOnCanvas_   = None
-T_             = 20    # in ms
-nrows_         = 10
-density_       = ((w_**2 + h_**2)**0.5)/5/25.4   # per mm
+datadir_ = os.path.join( os.getenv( 'HOME' ), 'Desktop', 'Experiments' )
+if not os.path.isdir( datadir_ ):
+    os.makedirs( datadir_ )
+
+stamp = datetime.datetime.now().isoformat().replace( ' ', '')
+datafile_ = os.path.join( datadir_, stamp )
+with open( datafile_, 'w' ) as f:
+    f.write( 'timestamp running \n')
+
+step_        = 0
+status_      = 'RUNNING'
+w_, h_, ws_  = 800, 480, 1
+img_         = None
+tkImage_     = None
+speed_       = 10               # mm in seconds
+slitWidth_   = 5                # in mm.
+t_           = time.time()
+root_        = tk.Tk()
+label_       = None
+canvas_      = tk.Canvas( root_, width=w_, height=h_ )
+startStop_   = None             # start stop button
+imgOnCanvas_ = None
+T_           = 20    # in ms
+nrows_       = 10
+density_     = ((w_**2 + h_**2)**0.5)/5/25.4   # per mm
 
 print( '[INFO] Density %.2f per mm' % density_ )
 print( '[WARN] This is customized for 5" LCD display. The values you'
@@ -64,6 +73,12 @@ def mm2px( mm ):
 def px2mm( px ):
     return px / density_
 
+def append_data_line( filename ):
+    stamp = datetime.datetime.now().isoformat()
+    line = '%s %g\n' % (stamp, status_ )
+    with open( filename, 'a' ) as f:
+        f.write( line )
+
 def init_arrays():
     global img_
     global im_, tkImage_
@@ -80,9 +95,7 @@ def generate_stripes( offset ):
     global speed_, slitWidth_ 
     global tkImage_, canvas_
     global img_
-    if not start_:
-        print( 'x', end = '' )
-        sys.stdout.flush()
+    if status_ == 'STOPPED':
         return 
     offset = int( offset )
     img_ = np.roll( img_, (0,offset,0), axis=1)
@@ -127,13 +140,20 @@ def width_changed( width ):
     return True
 
 def toggle_start_stop( ):
-    global start_
-    start_ = not start_
+    global status_
+    global startStop_
+    if status_ == 'RUNNING':
+        status_ = 'STOPPED'
+    else:
+        status_ = 'RUNNING'
+
+    startStop_.config( text = status_ )
 
 def init_tk():
     global tkImage_, root_
     global canvas_, imgOnCanvas_
-    global label_
+    global startStop_
+
     canvas_.grid(row=0, column=0, columnspan=3, rowspan = nrows_)
     init_arrays()
     assert tkImage_
@@ -160,12 +180,10 @@ def init_tk():
     width.grid(row=nrows_, column = 1 )
 
     # toggle step/stop
-    startStop = tk.Button( text='Start/Stop' 
+    startStop_ = tk.Button( text= status_  
             , command = toggle_start_stop
             )
-    startStop.grid( row=nrows_, column=2 )
-
-
+    startStop_.grid( row=nrows_, column=2 )
 
 def main():
     global root_, t_
