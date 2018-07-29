@@ -93,15 +93,15 @@ def update_frame( ):
     generate_stripes( offset )
     root_.after( T_, update_frame )
 
-def speed_changed( self, event ):
+def speed_changed( newspeed ):
     global speed_ 
-    speed_ = int(self.speed.get_value())
-    print( 'New speed %d' % speed_ )
+    speed_ = int(newspeed)
+    print( 'New speed %d' % newspeed )
     return True
 
-def width_changed( self, event ):
+def width_changed( width ):
     global slitWidth_ 
-    slitWidth_ = int(self.width.get_value())
+    slitWidth_ = int(width)
     print( '[INFO] Width changed to %d' % slitWidth_ )
     init_arrays()
     return True
@@ -118,13 +118,17 @@ def init_tk():
             )
 
     # add speed scale.
-    speed = tk.Scale( root_, from_ = 50, to_ = 500 ) 
-    speed.config( orient = tk.HORIZONTAL )
-    speed.grid( row = 1, column = 0)
+    speed = tk.Scale(root_, from_ = 50, to_ = 500
+                , command= lambda v: speed_changed(v)
+            )
+    speed.config(orient = tk.HORIZONTAL)
+    speed.grid(row = 1, column = 0)
 
-    width = tk.Scale( root_, from_ = 50, to_ = 500 ) 
-    width.config( orient = tk.HORIZONTAL )
-    width.grid( row = 1, column = 1)
+    width = tk.Scale(root_, from_ = 50, to_ = 500
+                , command= lambda v: width_changed(v)
+            ) 
+    width.config(orient = tk.HORIZONTAL)
+    width.grid(row = 1, column = 1)
     
 
 def main():
