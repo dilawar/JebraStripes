@@ -34,11 +34,14 @@ slitWidth_     = 20             # in pixels.
 t_             = time.time()
 root_          = tk.Tk()
 label_         = None
+canvas_        = tk.Canvas( root_ )
+imgOnCanvas_   = None
 T_             = 20    # in ms
 
 def set_resolution():
     global w_, h_
     global img_
+    global canvas_
     monitor = screeninfo.get_monitors()[-1]
     w_ = monitor.width // 2
     realW_ = w_
@@ -48,6 +51,8 @@ def set_resolution():
     nSlits = w_ // slitWidth_
     nSlits = nSlits - (nSlits % 2 ) + 1
     w_ = nSlits * slitWidth_
+    canvas_.width = realW_
+    canvas_.height = h_
     print( 'New dim for image %d, monitory width %d' % (w_, realW_))
 
 def im2tkimg( img ):
@@ -68,17 +73,18 @@ def init_arrays():
 
 def generate_stripes( offset = 0 ):
     global speed_, slitWidth_ 
-    global tkImage_, label_
+    global tkImage_, canvas_
     global img_
     offset = int( offset )
     img_ = np.roll( img_, (0,offset,0), axis=1)
     tkImage_ = im2tkimg( img_ )
-    label_.config( image = tkImage_ )
+    canvas_.itemconfig( imgOnCanvas_, image = tkImage_ )
 
 def update_frame( ):
     global img_
     global speed_, slitWidth_
     global t_, label_, root_
+    global canvas_, imgOnCanvas_
     print( 'Time = %.3f ' % t_ )
     offset = int( speed_ * (time.time() - t_))
     t_ = time.time()
@@ -100,12 +106,13 @@ def width_changed( self, event ):
 
 def init_tk():
     global tkImage_, root_
+    global canvas_, imgOnCanvas_
     global label_
     set_resolution()
     init_arrays()
     assert tkImage_
-    label_ = tk.Label( root_, image = tkImage_ )
-    label_.pack()
+    imgOnCanvas_ = canvas_.create_image(0,0, image=tkImage_)
+    canvas_.pack()
 
 def main():
     global root_, t_
