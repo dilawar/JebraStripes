@@ -47,9 +47,10 @@ speed_       = 10               # mm in seconds
 slitWidth_   = 5                # in mm.
 t_           = time.time()
 root_        = tk.Tk()
-root_.attributes( '-fullscreen', True )
+#  root_.attributes( '-fullscreen', True )
+root_.attributes( '-alpha', 0.0 )
 label_       = None
-canvas_      = tk.Canvas( root_, width=w_, height=h_ )
+canvas_      = tk.Canvas( root_, width=w_, height=h_)
 startStop_   = None             # start stop button
 imgOnCanvas_ = None
 T_           = 20    # in ms
@@ -61,6 +62,18 @@ print( '[WARN] This is customized for 5" LCD display. The values you'
        ' see on the development machine might vary if screen resolution '
        ' is not 800x480. '
        ' You have been warned!' )
+
+
+
+def toggle_fullscreen(event=None):
+    global root_
+    root_.attributes("-fullscreen", True )
+    return "break"
+
+def end_fullscreen( event=None):
+    globalroot_
+    root_.attributes("-fullscreen", False)
+    return "break"
 
 def im2tkimg( img ):
     global realW_
@@ -155,6 +168,9 @@ def init_tk():
     global tkImage_, root_
     global canvas_, imgOnCanvas_
     global startStop_
+
+    root_.bind("<F11>", toggle_fullscreen)
+    root_.bind("<Escape>", end_fullscreen)
 
     canvas_.grid(row=0, column=0, columnspan=3, rowspan = nrows_)
     init_arrays()
