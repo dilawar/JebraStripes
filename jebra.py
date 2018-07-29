@@ -38,6 +38,11 @@ except ImportError as e:
 onPi_   = True
 use_tk_ = False
 
+# opencv window
+window_ = 'FISH'
+cv2.namedWindow( window_, cv2.WINDOW_AUTOSIZE )
+
+
 try:
     import RPi.GPIO as GPIO
 except Exception as e:
@@ -136,7 +141,7 @@ def generate_stripes( offset ):
         tkImage_ = im2tkimg( img_ )
         canvas_.itemconfig( imgOnCanvas_, image = tkImage_ )
     else:
-        cv2.imshow( 'FISH', img_ )
+        cv2.imshow( window_, img_ )
         cv2.waitKey( 1 )
 
 def intOffset( v ):
