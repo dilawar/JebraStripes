@@ -47,8 +47,7 @@ speed_       = 10               # mm in seconds
 slitWidth_   = 5                # in mm.
 t_           = time.time()
 root_        = tk.Tk()
-#  root_.attributes( '-fullscreen', True )
-root_.attributes( '-alpha', 0.0 )
+root_.overrideredirect( 1 )     # remove border.
 label_       = None
 canvas_      = tk.Canvas( root_, width=w_, height=h_)
 startStop_   = None             # start stop button
@@ -71,7 +70,7 @@ def toggle_fullscreen(event=None):
     return "break"
 
 def end_fullscreen( event=None):
-    globalroot_
+    global root_
     root_.attributes("-fullscreen", False)
     return "break"
 
@@ -164,7 +163,7 @@ def toggle_start_stop( ):
 
     startStop_.config( text = status_ )
 
-def init_tk():
+def init_tk( show_control ):
     global tkImage_, root_
     global canvas_, imgOnCanvas_
     global startStop_
@@ -179,6 +178,10 @@ def init_tk():
             , anchor = "nw"
             , image=tkImage_, state = tk.DISABLED
             )
+
+
+    if not show_control:
+        return 
 
     # add speed scale.
     speed = tk.Scale(root_, from_ = 5, to_ = 20
@@ -206,7 +209,7 @@ def init_tk():
 def main():
     global root_, t_
     t_ = time.time() 
-    init_tk()
+    init_tk( show_control = False )
     root_.after( T_, update_frame )
     root_.mainloop()
 
