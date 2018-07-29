@@ -41,7 +41,7 @@ T_             = 20    # in ms
 def set_resolution():
     global w_, h_
     global img_
-    global canvas_
+    global canvas_, root_
     monitor = screeninfo.get_monitors()[-1]
     w_ = monitor.width // 2
     realW_ = w_
@@ -51,8 +51,10 @@ def set_resolution():
     nSlits = w_ // slitWidth_
     nSlits = nSlits - (nSlits % 2 ) + 1
     w_ = nSlits * slitWidth_
+    root_.geometry( '{}x{}'.format( realW_, h_) )
     canvas_.width = realW_
     canvas_.height = h_
+    canvas_.grid( row = 0, column = 0, columnspan = 2 )
     print( 'New dim for image %d, monitory width %d' % (w_, realW_))
 
 def im2tkimg( img ):
@@ -111,8 +113,19 @@ def init_tk():
     set_resolution()
     init_arrays()
     assert tkImage_
-    imgOnCanvas_ = canvas_.create_image(0,0, image=tkImage_)
-    canvas_.pack()
+    imgOnCanvas_ = canvas_.create_image(h_//2, realW_//2, image=tkImage_
+            , state = tk.DISABLED
+            )
+
+    # add speed scale.
+    speed = tk.Scale( root_, from_ = 50, to_ = 500 ) 
+    speed.config( orient = tk.HORIZONTAL )
+    speed.grid( row = 1, column = 0)
+
+    width = tk.Scale( root_, from_ = 50, to_ = 500 ) 
+    width.config( orient = tk.HORIZONTAL )
+    width.grid( row = 1, column = 1)
+    
 
 def main():
     global root_, t_
