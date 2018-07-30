@@ -26,6 +26,7 @@ import time
 import random
 import scipy.misc
 import datetime
+import screeninfo
 import cv2
 from PIL import Image, ImageTk
 
@@ -40,7 +41,11 @@ use_tk_ = False
 
 # opencv window
 window_ = 'FISH'
+screen = screeninfo.get_monitors()[-1]
 cv2.namedWindow( window_, cv2.WINDOW_AUTOSIZE )
+cv2.namedWindow( window_, cv2.WND_PROP_FULLSCREEN)
+cv2.moveWindow( window_, screen.x - 1, screen.y - 1)
+cv2.setWindowProperty(window_, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 
 try:
