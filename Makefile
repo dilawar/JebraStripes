@@ -1,2 +1,2 @@
-all : ./jebra.py
+all : ./main.py
 	python $<
